@@ -14,7 +14,7 @@ foreach ($song in $csv) {
     if ($result.Okay) {
       Write-Output $song.LocalFilePath
       $songIdHash = Get-SongHash $song
-      $duplicateOutFile = "$outputPath\$($songIdHash).aiff"
+      $duplicateOutFile = "$($vars.OutputPath)\$($songIdHash).aiff"
       if (Test-Path -Path $duplicateOutFile) {
         Write-Warning "$duplicateOutFile exists as duplicate on disk, deleting"
         Remove-Item -Path $duplicateOutFile

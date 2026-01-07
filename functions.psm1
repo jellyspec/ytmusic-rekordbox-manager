@@ -115,8 +115,8 @@ function Convert-WebmToWav {
         -metadata "title=$($record.Title)" `
         -metadata "genre=$($record.Genre)" `
         $outputPath *>$logPath
-      if (-Not $?) {
-        Write-Warning "ffmpeg encountered an error, log is $logPath"
+      if (-Not $? -And $LASTEXITCODE -ne 0) {
+        Write-Warning "ffmpeg encountered an error ($LASTEXITCODE), log is $logPath"
       } else {
         Remove-Item -Path $logPath
       }
