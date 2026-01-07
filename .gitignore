@@ -1,0 +1,5 @@
+*.csv
+*.exe
+aiff/
+logs/
+webm/
