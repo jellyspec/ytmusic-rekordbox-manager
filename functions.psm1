@@ -94,6 +94,28 @@ function Validate-Song {
   return $result
 }
 
+<#
+An example of the metadata produced by ffmpeg:
+  Name                           Value
+  ----                           -----
+  artist                         Gonzi
+  title                          Turn It Up
+  genre                          Hard Techno
+  encoder                        Lavf62.4.100
+#>
+function Get-WavMetadata {
+  param (
+    [String]$path
+  )
+  $ffmpegResult = .\ffmpeg.exe -i $path -f ffmetadata - 2>$null
+  foreach ($line in $ffmpegResult) {
+    if ($line -match "^([a-z]+)=(.+)$") {
+      $result[$Matches[1]] = $Matches[2]
+    }
+  }
+  return $result
+}
+
 function Convert-WebmToWav {
   param (
     [PSCustomObject] $record
@@ -105,10 +127,12 @@ function Convert-WebmToWav {
     } else {
       "$($script:OutputPath)\$($record.LocalFilePath)"
     }
-    $selectResult =  .\ffmpeg.exe -i $outputPath -f ffmetadata - 2>$null |`
-      Select-String -Pattern genre=$($song.Genre) -SimpleMatch -Quiet
-    if (-Not ((Test-Path -Path $outputPath) -And $selectResult)) {
-      Write-Warning "Output file for $hash does not exist, creating"
+    $wavMetadata = Get-WavMetadata -Path $outputPath
+    if (-Not ( `
+      (Test-Path -Path $outputPath -PathType Leaf) `
+      -And $wavMetadata.genre -eq $record.Genre `
+    )) {
+      Write-Warning "Output file for $hash does not exist or genre was changed"
       $logPath = "$($script:LogPath)\$($hash).log"
       .\ffmpeg.exe -y -i $webmPath -write_id3v2 1 `
         -metadata "artist=$($record.Artist)" `
