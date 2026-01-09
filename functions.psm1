@@ -107,6 +107,7 @@ function Get-WavMetadata {
   param (
     [String]$path
   )
+  $result = @{}
   $ffmpegResult = .\ffmpeg.exe -i $path -f ffmetadata - 2>$null
   foreach ($line in $ffmpegResult) {
     if ($line -match "^([a-z]+)=(.+)$") {
@@ -116,35 +117,45 @@ function Get-WavMetadata {
   return $result
 }
 
+function Get-SongFileName {
+  param (
+    [PSCustomObject] $record
+  )
+  if (-Not $record.LocalFilePath) {
+    $hash = Get-SongHash $record
+    return "$($hash).$($script:WavFormat)"
+  } else {
+    return $record.LocalFilePath
+  }
+}
+
 function Convert-WebmToWav {
   param (
     [PSCustomObject] $record
   )
-    $hash = Get-SongHash $record
-    $webmPath = "$($script:WebmPath)\$($hash).webm"
-    $outputPath = if (-Not $record.LocalFilePath) { 
-      "$($script:OutputPath)\$($hash).$($script:WavFormat)"
+  $hash = Get-SongHash $record
+  $webmPath = "$($script:WebmPath)\$($hash).webm"
+  $outputFile = Get-SongFileName $record
+  $outputPath = "$($script:OutputPath)\$outputFile"
+  $wavMetadata = Get-WavMetadata -Path $outputPath
+  if (-Not ( `
+    (Test-Path -Path $outputPath -PathType Leaf) `
+    -And $wavMetadata.genre -eq $record.Genre `
+  )) {
+    Write-Warning "Output file for $hash does not exist or genre was changed (`"$($record.Genre)`" vs `"$($wavMetadata.genre)`" on disk), re-encoding"
+    $logPath = "$($script:LogPath)\$($hash).log"
+    # TODO: Backfill BPM into aiff metadata
+    .\ffmpeg.exe -y -i $webmPath -write_id3v2 1 `
+      -metadata "Artist=$($record.Artist)" `
+      -metadata "Title=$($record.Title)" `
+      -metadata "Genre=$($record.Genre)" `
+      $outputPath *>$logPath
+    if (-Not $? -And $LASTEXITCODE -ne 0) {
+      Write-Warning "ffmpeg encountered an error ($LASTEXITCODE), log is $logPath"
     } else {
-      "$($script:OutputPath)\$($record.LocalFilePath)"
+      Remove-Item -Path $logPath
     }
-    $wavMetadata = Get-WavMetadata -Path $outputPath
-    if (-Not ( `
-      (Test-Path -Path $outputPath -PathType Leaf) `
-      -And $wavMetadata.genre -eq $record.Genre `
-    )) {
-      Write-Warning "Output file for $hash does not exist or genre was changed"
-      $logPath = "$($script:LogPath)\$($hash).log"
-      .\ffmpeg.exe -y -i $webmPath -write_id3v2 1 `
-        -metadata "artist=$($record.Artist)" `
-        -metadata "title=$($record.Title)" `
-        -metadata "genre=$($record.Genre)" `
-        $outputPath *>$logPath
-      if (-Not $? -And $LASTEXITCODE -ne 0) {
-        Write-Warning "ffmpeg encountered an error ($LASTEXITCODE), log is $logPath"
-      } else {
-        Remove-Item -Path $logPath
-      }
-    }
+  }
 }
 
 function Import-TrackListCsv {

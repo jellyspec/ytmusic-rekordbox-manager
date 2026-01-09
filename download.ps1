@@ -15,7 +15,13 @@ foreach ($song in $csv) {
     $webmFile = "$($vars.WebmPath)\$($songIdHash).webm"
     if (-Not (Test-Path -Path $webmFile)) {
       Write-Warning "Webm file for $songIdHash does not exist, downloading"
-      .\yt-dlp.exe -f bestaudio $song.URL -o $webmFile
+      $logPath = "$($vars.LogPath)\$($songIdHash).log"
+      .\yt-dlp.exe -f bestaudio $song.URL -o $webmFile *>$logPath
+      if ($LASTEXITCODE -ne 0) {
+        Write-Warning "yt-dlp encountered an error ($LASTEXITCODE), log is $logPath"
+      } else {
+        Remove-Item -Path $logPath
+      }
     }
     Convert-WebmToWav -Record $song
   }

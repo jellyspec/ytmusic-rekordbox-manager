@@ -5,7 +5,10 @@ $csv = Import-TrackListCsv
 
 # Copy and paste output into LocalFilePath column
 
+$songs = @{}
 foreach ($song in $csv) {
+  $fileName = Get-SongFileName $song
+  $songs[$fileName] = $True
   # Ensure every song with a LocalFilePath set only has one copy available
   if (-Not $song.LocalFilePath) {
     Write-Output ""
@@ -20,5 +23,14 @@ foreach ($song in $csv) {
         Remove-Item -Path $duplicateOutFile
       }
     }
+  }
+}
+
+# Now for every file in the output dir, ensure it matches an actual song
+$files = Get-ChildItem -Path $vars.OutputPath
+foreach ($file in $files) {
+  if (-Not $songs[$file.Name]) {
+    Write-Warning "$($file.Name) is missing from library, deleting"
+    Remove-Item -Path "$($vars.OutputPath)/$($file.Name)"
   }
 }
