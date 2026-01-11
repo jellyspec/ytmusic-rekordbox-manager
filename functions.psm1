@@ -159,5 +159,5 @@ function Convert-WebmToWav {
 }
 
 function Import-TrackListCsv {
-  return Import-Csv -Path ".\Track List - yt-dlp.csv"
+  Import-Csv -Path ".\Track List - yt-dlp.csv"
 }

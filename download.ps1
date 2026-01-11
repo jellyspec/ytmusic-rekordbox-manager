@@ -23,6 +23,8 @@ foreach ($song in $csv) {
         Remove-Item -Path $logPath
       }
     }
-    Convert-WebmToWav -Record $song
+    if (Test-Path -Path $webmFile) {
+      Convert-WebmToWav -Record $song
+    }
   }
 }
