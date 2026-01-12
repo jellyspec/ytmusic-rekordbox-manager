@@ -141,6 +141,7 @@ function Convert-WebmToWav {
   if (-Not ( `
     (Test-Path -Path $outputPath -PathType Leaf) `
     -And $wavMetadata.genre -eq $record.Genre `
+    -And $wavMetadata.title -eq $record.Title
   )) {
     Write-Warning "Output file for $hash does not exist or genre was changed (`"$($record.Genre)`" vs `"$($wavMetadata.genre)`" on disk), re-encoding"
     $logPath = "$($script:LogPath)\$($hash).log"
