@@ -76,6 +76,7 @@ function Validate-Song {
   $result = @{
     'Okay' = $True
     'Record' = $record
+    'Hash' = (Get-SongHash $record)
   }
   if ([string]::IsNullOrEmpty($record.Title) `
     -Or [string]::IsNullOrEmpty($record.Artist) `
@@ -88,7 +89,7 @@ function Validate-Song {
     $result.Okay = $False
     $result.Result = 'Sync is disabled'
   }
-  if (-Not $result.Okay -And $result.Result -ne 'Sync is disabled') {
+  if (-Not $result.Okay) {
     Write-Warning ($result | Out-String)
   }
   return $result
