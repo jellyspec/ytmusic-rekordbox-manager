@@ -141,10 +141,12 @@ function Convert-WebmToWav {
   $wavMetadata = Get-WavMetadata -Path $outputPath
   if (-Not ( `
     (Test-Path -Path $outputPath -PathType Leaf) `
-    -And $wavMetadata.genre -eq $record.Genre `
-    -And $wavMetadata.title -eq $record.Title
-  )) {
-    Write-Warning "Output file for $hash does not exist or genre was changed (`"$($record.Genre)`" vs `"$($wavMetadata.genre)`" on disk), re-encoding"
+    -And ($wavMetadata.genre -eq $record.Genre) `
+    -And ( ` # Disable title matching if it contains non-ASCII chars
+      $record.Title -cmatch '[^\x20-\x7F]' `
+      -Or ($wavMetadata.title -eq $record.Title) `
+  ))) {
+    Write-Warning "Output file for $hash does not exist or genre was changed (`"$($record.Title) - $($record.Genre)`" vs `"$($wavMetadata.title) - $($wavMetadata.genre)`" on disk), re-encoding"
     $logPath = "$($script:LogPath)\$($hash).log"
     # TODO: Backfill BPM into aiff metadata
     .\ffmpeg.exe -y -i $webmPath -write_id3v2 1 `
