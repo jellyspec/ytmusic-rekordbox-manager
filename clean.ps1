@@ -23,6 +23,7 @@ foreach ($song in $csv) {
         Remove-Item -Path $duplicateOutFile
       }
       # Delete any files for which sync is disabled but still exist in the output dir
+      # TODO: Do this for all songs where LocalFilePath is not set
       if ($result.Result -eq 'Sync is disabled') {
         if (Test-Path -Path $song.LocalFilePath) {
           Write-Warning "Deleting $($song.LocalFilePath) because sync off for $songIdHash"
