@@ -7,34 +7,33 @@ $csv = Import-TrackListCsv
 
 $songs = @{}
 foreach ($song in $csv) {
+  $result = Validate-Song $song
   $fileName = Get-SongFileName $song
+  $songIdHash = Get-SongHash $song
   $songs[$fileName] = $True
-  # Ensure every song with a LocalFilePath set only has one copy available
-  if (-Not $song.LocalFilePath) {
-    Write-Output ""
-  } else {
-    $result = Validate-Song $song
-    if ($result.Okay) {
-      Write-Output $song.LocalFilePath
-      $songIdHash = Get-SongHash $song
+  # Delete any files for which sync is disabled but still exist in the output dir
+  if ($result.Result -eq 'Sync is disabled') {
+    if ($song.LocalFilePath -And (Test-Path -Path $song.LocalFilePath)) {
+      Write-Warning "Deleting $($song.LocalFilePath) because sync off for $songIdHash"
+      Remove-Item -Path $song.LocalFilePath
+    }
+    $songPath = "$($vars.OutputPath)\$fileName"
+    if (Test-Path -Path $songPath) {
+      Write-Warning "Deleting $songPath because sync off for $songIdHash"
+      Remove-Item -Path $songPath
+    }
+  }
+  if ($result.Okay) {
+    if (-Not $song.LocalFilePath) {
+      Write-Output ""
+    } else {
+      # Ensure every song with a LocalFilePath set only has one copy available
       $duplicateOutFile = "$($vars.OutputPath)\$($songIdHash).aiff"
       if (Test-Path -Path $duplicateOutFile) {
         Write-Warning "$duplicateOutFile exists as duplicate on disk, deleting"
         Remove-Item -Path $duplicateOutFile
       }
-      # Delete any files for which sync is disabled but still exist in the output dir
-      # TODO: Do this for all songs where LocalFilePath is not set
-      if ($result.Result -eq 'Sync is disabled') {
-        if (Test-Path -Path $song.LocalFilePath) {
-          Write-Warning "Deleting $($song.LocalFilePath) because sync off for $songIdHash"
-          Remove-Item -Path $song.LocalFilePath
-        }
-        $songPath = "$($vars.OutputPath)\$($songIdHash).aiff"
-        if (Test-Path -Path $songPath) {
-          Write-Warning "Deleting $songPath because sync off for $songIdHash"
-          Remove-Item -Path $songPath
-        }
-      }
+      Write-Output $song.LocalFilePath
     }
   }
 }
